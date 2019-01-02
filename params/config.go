@@ -118,6 +118,7 @@ var (
 // set of configuration options.
 type ChainConfig struct {
 	ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	Plasma 	bool
 
 	HomesteadBlock *big.Int `json:"homesteadBlock,omitempty"` // Homestead switch block (nil = no fork, 0 = already homestead)
 
@@ -181,6 +182,10 @@ func (c *ChainConfig) String() string {
 		c.ConstantinopleBlock,
 		engine,
 	)
+}
+
+func (c *ChainConfig) IsPlasma() bool {
+	return c.Plasma
 }
 
 // IsHomestead returns whether num is either equal to the homestead block or greater.
