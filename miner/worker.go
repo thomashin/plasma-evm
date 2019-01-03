@@ -1096,7 +1096,7 @@ func (w *worker) commitNewWorkForRB(interrupt *int32, noempty bool, timestamp in
 		return
 	}
 	if w.env.IsUserActivated && w.env.NumURBmined.Cmp(big.NewInt(0)) == 0 {
-		header.Difficulty.Add(header.Difficulty, w.env.currentFork * 100)
+		header.Difficulty.Add(header.Difficulty, big.NewInt(1))
 	}
 
 	// TODO: delete because pls block is frontier spec
