@@ -896,15 +896,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	defer bc.mu.Unlock()
 
 	currentBlock := bc.CurrentBlock()
-	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	//externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
-
-	// TODO: Need to refactor. This code line is only for test.
-	localTd := currentBlock.DeprecatedTd()
-	if localTd == nil {
-		localTd = big.NewInt(0)
-	}
-	externTd := block.DeprecatedTd()
+	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	// externTd = header.difficulty * 2^128 + header.number
+	externTd = big.NewInt(0).Add(
+		big.NewInt(0).Mul(block.Difficulty(), big.NewInt(0).Exp(big.NewInt(2), big.NewInt(128), nil)),
+		block.Number())
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
