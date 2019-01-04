@@ -22,6 +22,9 @@ import (
 	"sort"
 	"testing"
 
+	"fmt"
+	"math/big"
+
 	"github.com/Onther-Tech/plasma-evm/common"
 	"github.com/Onther-Tech/plasma-evm/core"
 	"github.com/Onther-Tech/plasma-evm/core/types"
@@ -29,8 +32,6 @@ import (
 	"github.com/Onther-Tech/plasma-evm/crypto"
 	"github.com/Onther-Tech/plasma-evm/ethdb"
 	"github.com/Onther-Tech/plasma-evm/params"
-	"fmt"
-	"math/big"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,
@@ -450,7 +451,7 @@ func TestClique(t *testing.T) {
 			batches[len(batches)-1] = append(batches[len(batches)-1], block)
 		}
 		// Pass all the headers through clique and ensure tallying succeeds
-		chain, err := core.NewBlockChain(db, nil, &config, engine, vm.Config{})
+		chain, err := core.NewBlockChain(db, nil, &config, engine, vm.Config{}, nil)
 		if err != nil {
 			t.Errorf("test %d: failed to create test chain: %v", i, err)
 			continue
@@ -619,7 +620,7 @@ func TestRebase(t *testing.T) {
 	}
 
 	// Pass all the headers through clique and ensure tallying succeeds
-	chain, err := core.NewBlockChain(db, nil, &config, engine, vm.Config{})
+	chain, err := core.NewBlockChain(db, nil, &config, engine, vm.Config{}, nil)
 	if err != nil {
 		t.Errorf("test : failed to create test chain: %v", err)
 	}
