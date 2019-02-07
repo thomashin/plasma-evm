@@ -995,6 +995,20 @@ func TestAdjustGasPrice(t *testing.T) {
 		t.Fatalf("Failed to deploy epoch handler contract")
 	}
 
+	opt.Nonce = big.NewInt((int64)(pls.rootchainManager.state.getNonce() + 1))
+	_, _, _, err = epochhandler.DeployEpochHandler(opt, rootchainBackend)
+	if err != nil {
+		// gasused: 2843117
+		t.Fatalf("Failed to deploy epoch handler contract2 %v", err)
+	}
+
+	opt.Nonce = big.NewInt((int64)(pls.rootchainManager.state.getNonce() + 2))
+	_, _, _, err = epochhandler.DeployEpochHandler(opt, rootchainBackend)
+	if err != nil {
+		// gasused: 2843117
+		t.Fatalf("Failed to deploy epoch handler contract3 %v", err)
+	}
+
 	// rootchain으로 보낼 tx를 두 개 만든다.
 	// submit하도록 한다.
 	// nonce := operatorNonce
