@@ -268,9 +268,9 @@ func (rcm *RootChainManager) runSubmitter() {
 	// adjust coordinates gas prices at reasonable prices.
 	adjust := func(sufficient bool) {
 		if sufficient {
-			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
 		} else {
-			gasPrice.Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
 		}
 	}
 	// submit sends transaction that submits ORB or NRB
