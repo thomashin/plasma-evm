@@ -269,11 +269,12 @@ func (rcm *RootChainManager) runSubmitter() {
 	adjust := func(sufficient bool) {
 		original := gasPrice
 		if sufficient {
-			rcm.state.gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
 		} else {
-			rcm.state.gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
 		}
-		log.Info("Adjust gas price", "original", original, "new", rcm.state.gasPrice)
+		rcm.state.gasPrice = gasPrice
+		log.Info("Adjust gas price", "original", original, "new", gasPrice)
 	}
 	// submit sends transaction that submits ORB or NRB
 	submit := func(name string, block *types.Block) common.Hash {
