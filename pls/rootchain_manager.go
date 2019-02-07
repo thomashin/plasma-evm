@@ -267,11 +267,13 @@ func (rcm *RootChainManager) runSubmitter() {
 	)
 	// adjust coordinates gas prices at reasonable prices.
 	adjust := func(sufficient bool) {
+		original := gasPrice
 		if sufficient {
-			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
+			rcm.state.gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(4)), big.NewInt(3))
 		} else {
-			gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
+			rcm.state.gasPrice = new(big.Int).Mul(new(big.Int).Div(gasPrice, big.NewInt(2)), big.NewInt(3))
 		}
+		log.Info("Adjust gas price", "original", original, "new", rcm.state.gasPrice)
 	}
 	// submit sends transaction that submits ORB or NRB
 	submit := func(name string, block *types.Block) common.Hash {
@@ -294,12 +296,13 @@ func (rcm *RootChainManager) runSubmitter() {
 		if err != nil {
 			log.Error("Failed to send "+funcName, "err", err)
 		}
+		log.Info("Submit block to rootchain", "hash", signedTx.Hash())
 		return signedTx.Hash()
 	}
 
 	for {
-		currentFork := big.NewInt(int64(rcm.state.currentFork))
-		lastBlock, err := rcm.lastBlock(currentFork)
+		// currentFork := big.NewInt(int64(rcm.state.currentFork))
+		// lastBlock, err := rcm.lastBlock(currentFork)
 		if err != nil {
 			log.Error("Failed to get last block", "err", err)
 			return
@@ -331,16 +334,24 @@ func (rcm *RootChainManager) runSubmitter() {
 			for {
 				select {
 				case _, ok := <-pendingInterval.C:
+					var mutex = &sync.Mutex{}
+
 					if ok {
-						if block.Number().Cmp(new(big.Int).Sub(lastBlock, big.NewInt(1))) != 0 {
-							break
-						}
+						mutex.Lock()
+
+						log.Info("Mining submit block time out")
+						// 이게 안 맞다.. -> 이거 carl님 요청해보기.
+						// if block.Number().Cmp(new(big.Int).Sub(lastBlock, big.NewInt(1))) != 0 {
+						// 	break
+						// }
+						log.Info("nonce", "nonce", nonce)
 						if nonce == rcm.state.getNonce() {
 							adjust(false)
 						} else {
 							nonce = rcm.state.getNonce()
 						}
 						txHash = submit(funcName, block)
+						mutex.Unlock()
 					}
 				case <-blockSubmitEvents:
 					pendingInterval.Stop()

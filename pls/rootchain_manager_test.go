@@ -980,48 +980,65 @@ func TestAdjustGasPrice(t *testing.T) {
 	blockFilterer, _ := pls.rootchainManager.rootchainContract.WatchBlockSubmitted(blockSubmitWatchOpts, blockSubmitEvents)
 	defer blockFilterer.Unsubscribe()
 
-	wait(3)
-
-	log.Info("All backends are set up")
-
 	rootchainBackend, err := ethclient.Dial("ws://localhost:8546")
 	if err != nil {
 		t.Fatalf("Failed to connect rootchain: %v", err)
 	}
-	opt := bind.NewKeyedTransactor(operatorKey)
-	_, _, _, err = epochhandler.DeployEpochHandler(opt, rootchainBackend)
+	log.Info("All backends are set up")
+
+	original := big.NewInt(10)
+	pls.rootchainManager.state.gasPrice = original // submit할 때 gas price 낮게 만들어보자아
+	pls.config.PendingInterval = 100
+
+	// 이제 여기서 plasma block을 생성한다.!!!!
+	// 여기서 문제는 operator가 epochHandler를 배포하면 안되고 다른 account가 배포해야 함. 왜냐하면 rootchain_manager의 operator의 논스가 여기서 변형되기 때문이다.
+	makeSampleTx(pls.rootchainManager)
+	if err != nil {
+		t.Fatalf("failed to send tx: %v", err)
+	}
+
+	// deploy하는거까지 봐야한다!
+	// plasma block 먼저 만든 다음에 tx 직접 날린다!!
+
+	// wait(2) // plasma submit하는게 좀 걸린다.
+	// deploy Epoch Handelr 3개!!
+	nonce, _ := pls.rootchainManager.backend.NonceAt(context.Background(), addr1, nil)
+	opt1.Nonce = big.NewInt((int64)(nonce))
+	_, _, _, err = epochhandler.DeployEpochHandler(opt1, rootchainBackend)
 	if err != nil {
 		// gasused: 2843117
 		t.Fatalf("Failed to deploy epoch handler contract")
 	}
 
-	opt.Nonce = big.NewInt((int64)(pls.rootchainManager.state.getNonce() + 1))
-	_, _, _, err = epochhandler.DeployEpochHandler(opt, rootchainBackend)
+	opt1.Nonce = big.NewInt((int64)(nonce + 1))
+	_, _, _, err = epochhandler.DeployEpochHandler(opt1, rootchainBackend)
 	if err != nil {
 		// gasused: 2843117
 		t.Fatalf("Failed to deploy epoch handler contract2 %v", err)
 	}
 
-	opt.Nonce = big.NewInt((int64)(pls.rootchainManager.state.getNonce() + 2))
-	_, _, _, err = epochhandler.DeployEpochHandler(opt, rootchainBackend)
+	opt1.Nonce = big.NewInt((int64)(nonce + 2))
+	_, _, _, err = epochhandler.DeployEpochHandler(opt1, rootchainBackend)
 	if err != nil {
 		// gasused: 2843117
 		t.Fatalf("Failed to deploy epoch handler contract3 %v", err)
 	}
+	wait(10) // wait를 10 줄게 아니라 submit이 될 때까지 기다려야 하는데...
 
-	// rootchain으로 보낼 tx를 두 개 만든다.
-	// submit하도록 한다.
-	// nonce := operatorNonce
-	// operatorNonce += 1
+	// 2초는 너무 짧아서 같은 블록에 마이닝이 안된다.
 
-	// signer := types.NewEIP155Signer(params.PlasmaChainConfig.ChainID)
-	// tx, err = types.SignTx(tx, signer, operatorKey)
-	// if err != nil {
-	// 	t.Fatal("Failed to sign sample tx")
-	// }
-	// data, err := rlp.EncodeToBytes(tx)
-	// log.Info("gas price is", "gas price", pls.rootchainManager.state.gasPrice)
-	// rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", common.ToHex(data))
+	// 실패하게 만들려면 어떻게 해야되지?..
+
+	// block 4 (3개) deploy
+	// block 5 (1개) submit -> adjust를 하지 않네..??
+
+	// interval이 100초니까 안되는 듯 하네.
+
+	// geth restart할 때도 gas price db에 저장해둬야 하나?
+	newGasPrice := new(big.Int).Mul(new(big.Int).Div(original, big.NewInt(4)), big.NewInt(3))
+	if pls.rootchainManager.state.gasPrice.Cmp(newGasPrice) != 0 {
+		t.Errorf("original: %v, new: %v", original, pls.rootchainManager.state.gasPrice)
+	}
 }
 
 func TestMinerRestart(t *testing.T) {
@@ -1386,7 +1403,7 @@ func makePls() (*Plasma, *rpc.Server, string, error) {
 	chainConfig := params.PlasmaChainConfig
 
 	rootchainAddress, rootchainContract, err := deployRootChain(blockchain.Genesis())
-	wait(4)
+	wait(8)
 	if err != nil {
 		log.Error("Failed to deploy rootchain contract", "err", err)
 		return nil, nil, "", err
